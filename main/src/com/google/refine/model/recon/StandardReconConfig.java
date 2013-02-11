@@ -194,8 +194,8 @@ public class StandardReconConfig extends ReconConfig {
   
     /**
      * nunobett
-     * 11/02/2013
-     * Added DEFAULT_RECONCILE_BATCH_SIZE with size 10 so that if -Drefine.reconcile.batchSize is null, it will use this value
+     * 2013/02/11
+     * Added DEFAULT_RECONCILE_BATCH_SIZE with size 10 so that if -Drefine.reconcile.batchSize is null, it will use value 10
      */
     static private final int DEFAULT_RECONCILE_BATCH_SIZE = 10;
 
@@ -474,7 +474,7 @@ public class StandardReconConfig extends ReconConfig {
     }
     
     static protected Set<String> breakWords(String s) {
-        String[] words = s.toLowerCase().split("\\s+");
+                String[] words = s.toLowerCase().split("\\s+");
         
         Set<String> set = new HashSet<String>(words.length);
         for (String word : words) {
