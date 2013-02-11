@@ -7,13 +7,13 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
 met:
 
-    * Redistributions of source code must retain the above copyright
+ * Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above
+ * Redistributions in binary form must reproduce the above
 copyright notice, this list of conditions and the following disclaimer
 in the documentation and/or other materials provided with the
 distribution.
-    * Neither the name of Google Inc. nor the names of its
+ * Neither the name of Google Inc. nor the names of its
 contributors may be used to endorse or promote products derived from
 this software without specific prior written permission.
 
@@ -29,7 +29,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-*/
+ */
 
 package com.google.refine.model.recon;
 
@@ -64,424 +64,430 @@ import com.google.refine.model.Row;
 import com.google.refine.util.ParsingUtilities;
 
 public class StandardReconConfig extends ReconConfig {
-    final static Logger logger = LoggerFactory.getLogger("refine-standard-recon");
-    
-    static public class ColumnDetail {
-        final public String columnName;
-        final public String propertyName;
-        final public String propertyID;
-        
-        public ColumnDetail(String columnName, String propertyName, String propertyID) {
-            this.columnName = columnName;
-            this.propertyName = propertyName;
-            this.propertyID = propertyID;
-        }
-    }
-    
-    static public ReconConfig reconstruct(JSONObject obj) throws Exception {
-        List<ColumnDetail> columnDetails = null;
-        if (obj.has("columnDetails")) {
-            JSONArray columnDetailsA = obj.getJSONArray("columnDetails");
-            int l = columnDetailsA.length();
-            
-            columnDetails = new ArrayList<ColumnDetail>(l);
-            for (int i = 0; i < l; i++) {
-                JSONObject o = columnDetailsA.getJSONObject(i);
-                
-                if (o.has("property")) { // legacy
-                    JSONObject p = o.getJSONObject("property");
-                    columnDetails.add(new ColumnDetail(
-                        o.getString("column"),
-                        p.has("name") ? p.getString("name") : null,
-                        p.has("id") ? p.getString("id") : null
-                    ));
-                } else {
-                    columnDetails.add(new ColumnDetail(
-                        o.getString("column"),
-                        o.has("propertyName") ? o.getString("propertyName") : null,
-                        o.has("propertyID") ? o.getString("propertyID") : null
-                    ));
+
+        final static Logger logger = LoggerFactory.getLogger("refine-standard-recon");
+
+        static public class ColumnDetail {
+
+                final public String columnName;
+                final public String propertyName;
+                final public String propertyID;
+
+                public ColumnDetail(String columnName, String propertyName, String propertyID) {
+                        this.columnName = columnName;
+                        this.propertyName = propertyName;
+                        this.propertyID = propertyID;
                 }
-            }
-        } else {
-            columnDetails = new ArrayList<ColumnDetail>();
         }
-        
-        JSONObject t = obj.has("type") && !obj.isNull("type") ? obj.getJSONObject("type") : null;
-        
-        return new StandardReconConfig(
-            obj.getString("service"),
-            obj.has("identifierSpace") ? obj.getString("identifierSpace") : null,
-            obj.has("schemaSpace") ? obj.getString("schemaSpace") : null,
-            t == null ? null : t.getString("id"),
-            t == null ? null : (t.has("name") ? t.getString("name") : null),
-            obj.getBoolean("autoMatch"),
-            columnDetails
-        );
-    }
-    
-    static protected class StandardReconJob extends ReconJob {
-        String text;
-        String code;
-        
-        @Override
-        public int getKey() {
-            return code.hashCode();
-        }
-    }
-    
-    final public String     service;
-    final public String     identifierSpace;
-    final public String     schemaSpace;
-    
-    final public String     typeID;
-    final public String     typeName;
-    final public boolean    autoMatch;
-    final public List<ColumnDetail> columnDetails;
-    
-    public StandardReconConfig(
-        String service,
-        String identifierSpace,
-        String schemaSpace,
-        
-        String typeID, 
-        String typeName,
-        boolean autoMatch,
-        List<ColumnDetail> columnDetails
-    ) {
-        this.service = service;
-        this.identifierSpace = identifierSpace;
-        this.schemaSpace = schemaSpace;
-        
-        this.typeID = typeID;
-        this.typeName = typeName;
-        this.autoMatch = autoMatch;
-        this.columnDetails = columnDetails;
-    }
 
-    @Override
-    public void write(JSONWriter writer, Properties options)
-            throws JSONException {
-        
-        writer.object();
-        writer.key("mode"); writer.value("standard-service");
-        writer.key("service"); writer.value(service);
-        writer.key("identifierSpace"); writer.value(identifierSpace);
-        writer.key("schemaSpace"); writer.value(schemaSpace);
-        writer.key("type");
-            if (typeID == null) {
-                writer.value(null);
-            } else {
-                writer.object();
-                writer.key("id"); writer.value(typeID);
-                writer.key("name"); writer.value(typeName);
-                writer.endObject();
-            }
-        writer.key("autoMatch"); writer.value(autoMatch);
-        writer.key("columnDetails");
-            writer.array();
-            for (ColumnDetail c : columnDetails) {
-                writer.object();
-                writer.key("column"); writer.value(c.columnName);
-                writer.key("propertyName"); writer.value(c.propertyName);
-                writer.key("propertyID"); writer.value(c.propertyID);
-                writer.endObject();
-            }
-            writer.endArray();
-        writer.endObject();
-    }
+        static public ReconConfig reconstruct(JSONObject obj) throws Exception {
+                List<ColumnDetail> columnDetails = null;
+                if (obj.has("columnDetails")) {
+                        JSONArray columnDetailsA = obj.getJSONArray("columnDetails");
+                        int l = columnDetailsA.length();
 
-  
-    /**
-     * nunobett
-     * 2013/02/11
-     * Added DEFAULT_RECONCILE_BATCH_SIZE with size 10 so that if -Drefine.reconcile.batchSize is null, it will use value 10
-     */
-    static private final int DEFAULT_RECONCILE_BATCH_SIZE = 10;
+                        columnDetails = new ArrayList<ColumnDetail>(l);
+                        for (int i = 0; i < l; i++) {
+                                JSONObject o = columnDetailsA.getJSONObject(i);
 
-    /*
-     * (non-Javadoc)
-     * @see com.google.refine.model.recon.ReconConfig#getBatchSize()
-     */
-    @Override
-    public int getBatchSize() {
-            //nunobett: changed to user refine.reconcile.batchSize from parameters  
-            return Configurations.getInteger("refine.reconcile.batchSize",DEFAULT_RECONCILE_BATCH_SIZE);
-    }
-
-    @Override
-    public String getBriefDescription(Project project, String columnName) {
-        return "Reconcile cells in column " + columnName + " to type " + typeID;
-    }
-
-    @Override
-    public ReconJob createJob(Project project, int rowIndex, Row row,
-            String columnName, Cell cell) {
-        
-        StandardReconJob job = new StandardReconJob();
-
-        try {
-            StringWriter stringWriter = new StringWriter();
-            JSONWriter jsonWriter = new JSONWriter(stringWriter);
-            
-            jsonWriter.object();
-                jsonWriter.key("query"); jsonWriter.value(cell.value.toString());
-                if (typeID != null) {
-                    jsonWriter.key("type"); jsonWriter.value(typeID);
-                    jsonWriter.key("type_strict"); jsonWriter.value("should");
-                }
-                
-                if (columnDetails.size() > 0) {
-                    jsonWriter.key("properties");
-                    jsonWriter.array();
-                    
-                    for (ColumnDetail c : columnDetails) {
-                        int detailCellIndex = project.columnModel.getColumnByName(c.columnName).getCellIndex();
-                        
-                        Cell cell2 = row.getCell(detailCellIndex);
-                        if (cell2 == null || !ExpressionUtils.isNonBlankData(cell2.value)) {
-                            int cellIndex = project.columnModel.getColumnByName(columnName).getCellIndex();
-                            
-                            RowDependency rd = project.recordModel.getRowDependency(rowIndex);
-                            if (rd != null && rd.cellDependencies != null) {
-                                int contextRowIndex = rd.cellDependencies[cellIndex].rowIndex;
-                                if (contextRowIndex >= 0 && contextRowIndex < project.rows.size()) {
-                                    Row row2 = project.rows.get(contextRowIndex);
-                                    
-                                    cell2 = row2.getCell(detailCellIndex);
+                                if (o.has("property")) { // legacy
+                                        JSONObject p = o.getJSONObject("property");
+                                        columnDetails.add(new ColumnDetail(o.getString("column"), p.has("name") ? p
+                                                        .getString("name") : null, p.has("id") ? p.getString("id")
+                                                        : null));
+                                } else {
+                                        columnDetails.add(new ColumnDetail(o.getString("column"),
+                                                        o.has("propertyName") ? o.getString("propertyName") : null, o
+                                                                        .has("propertyID") ? o.getString("propertyID")
+                                                                        : null));
                                 }
-                            }
                         }
-                        
-                        if (cell2 != null && ExpressionUtils.isNonBlankData(cell2.value)) {
-                            jsonWriter.object();
-                            
-                            jsonWriter.key("pid"); jsonWriter.value(c.propertyID);
-                            jsonWriter.key("v");
-                            if (cell2.recon != null && cell2.recon.match != null) {
-                                jsonWriter.object();
-                                jsonWriter.key("id"); jsonWriter.value(cell2.recon.match.id);
-                                jsonWriter.key("name"); jsonWriter.value(cell2.recon.match.name);
-                                jsonWriter.endObject();
-                            } else {
-                                jsonWriter.value(cell2.value.toString());
-                            }
-                            
-                            jsonWriter.endObject();
-                        }
-                    }
-                    
-                    jsonWriter.endArray();
+                } else {
+                        columnDetails = new ArrayList<ColumnDetail>();
                 }
-            jsonWriter.endObject();
-            
-            job.text = cell.value.toString();
-            job.code = stringWriter.toString();
-        } catch (JSONException e) {
-            //
+
+                JSONObject t = obj.has("type") && !obj.isNull("type") ? obj.getJSONObject("type") : null;
+
+                return new StandardReconConfig(obj.getString("service"),
+                                obj.has("identifierSpace") ? obj.getString("identifierSpace") : null,
+                                obj.has("schemaSpace") ? obj.getString("schemaSpace") : null, t == null ? null
+                                                : t.getString("id"), t == null ? null
+                                                : (t.has("name") ? t.getString("name") : null),
+                                obj.getBoolean("autoMatch"), columnDetails);
         }
-        return job;
-    }
-    
-    @Override
-    public List<Recon> batchRecon(List<ReconJob> jobs, long historyEntryID) {
-        List<Recon> recons = new ArrayList<Recon>(jobs.size());
-        
-        StringWriter stringWriter = new StringWriter();
-        
-        stringWriter.write("{");
-        for (int i = 0; i < jobs.size(); i++) {
-            StandardReconJob job = (StandardReconJob) jobs.get(i);
-            if (i > 0) {
-                stringWriter.write(",");
-            }
-            stringWriter.write("\"q" + i + "\":");
-            stringWriter.write(job.code);
+
+        static protected class StandardReconJob extends ReconJob {
+
+                String text;
+                String code;
+
+                @Override
+                public int getKey() {
+                        return code.hashCode();
+                }
         }
-        stringWriter.write("}");
-        String queriesString = stringWriter.toString();
-        
-        try {
-            URL url = new URL(service);
-            URLConnection connection = url.openConnection();
-            {
-                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                connection.setConnectTimeout(30000);
-                connection.setDoOutput(true);
-                
-                DataOutputStream dos = new DataOutputStream(connection.getOutputStream());
+
+        final public String service;
+        final public String identifierSpace;
+        final public String schemaSpace;
+
+        final public String typeID;
+        final public String typeName;
+        final public boolean autoMatch;
+        final public List<ColumnDetail> columnDetails;
+
+        public StandardReconConfig(String service, String identifierSpace, String schemaSpace,
+
+        String typeID, String typeName, boolean autoMatch, List<ColumnDetail> columnDetails) {
+                this.service = service;
+                this.identifierSpace = identifierSpace;
+                this.schemaSpace = schemaSpace;
+
+                this.typeID = typeID;
+                this.typeName = typeName;
+                this.autoMatch = autoMatch;
+                this.columnDetails = columnDetails;
+        }
+
+        @Override
+        public void write(JSONWriter writer, Properties options) throws JSONException {
+
+                writer.object();
+                writer.key("mode");
+                writer.value("standard-service");
+                writer.key("service");
+                writer.value(service);
+                writer.key("identifierSpace");
+                writer.value(identifierSpace);
+                writer.key("schemaSpace");
+                writer.value(schemaSpace);
+                writer.key("type");
+                if (typeID == null) {
+                        writer.value(null);
+                } else {
+                        writer.object();
+                        writer.key("id");
+                        writer.value(typeID);
+                        writer.key("name");
+                        writer.value(typeName);
+                        writer.endObject();
+                }
+                writer.key("autoMatch");
+                writer.value(autoMatch);
+                writer.key("columnDetails");
+                writer.array();
+                for (ColumnDetail c : columnDetails) {
+                        writer.object();
+                        writer.key("column");
+                        writer.value(c.columnName);
+                        writer.key("propertyName");
+                        writer.value(c.propertyName);
+                        writer.key("propertyID");
+                        writer.value(c.propertyID);
+                        writer.endObject();
+                }
+                writer.endArray();
+                writer.endObject();
+        }
+
+        /**
+         * nunobett 2013/02/11 Added DEFAULT_RECONCILE_BATCH_SIZE with size 10
+         * so that if -Drefine.reconcile.batchSize is null, it will use value 10
+         */
+        static private final int DEFAULT_RECONCILE_BATCH_SIZE = 10;
+
+        /*
+         * (non-Javadoc)
+         * 
+         * @see com.google.refine.model.recon.ReconConfig#getBatchSize()
+         */
+        @Override
+        public int getBatchSize() {
+                // nunobett: changed to user refine.reconcile.batchSize from
+                // parameters
+                return Configurations.getInteger("refine.reconcile.batchSize", DEFAULT_RECONCILE_BATCH_SIZE);
+        }
+
+        @Override
+        public String getBriefDescription(Project project, String columnName) {
+                return "Reconcile cells in column " + columnName + " to type " + typeID;
+        }
+
+        @Override
+        public ReconJob createJob(Project project, int rowIndex, Row row, String columnName, Cell cell) {
+
+                StandardReconJob job = new StandardReconJob();
+
                 try {
-                    String body = "queries=" + ParsingUtilities.encode(queriesString);
-                    
-                    dos.writeBytes(body);
-                } finally {
-                    dos.flush();
-                    dos.close();
+                        StringWriter stringWriter = new StringWriter();
+                        JSONWriter jsonWriter = new JSONWriter(stringWriter);
+
+                        jsonWriter.object();
+                        jsonWriter.key("query");
+                        jsonWriter.value(cell.value.toString());
+                        if (typeID != null) {
+                                jsonWriter.key("type");
+                                jsonWriter.value(typeID);
+                                jsonWriter.key("type_strict");
+                                jsonWriter.value("should");
+                        }
+
+                        if (columnDetails.size() > 0) {
+                                jsonWriter.key("properties");
+                                jsonWriter.array();
+
+                                for (ColumnDetail c : columnDetails) {
+                                        int detailCellIndex = project.columnModel.getColumnByName(c.columnName)
+                                                        .getCellIndex();
+
+                                        Cell cell2 = row.getCell(detailCellIndex);
+                                        if (cell2 == null || !ExpressionUtils.isNonBlankData(cell2.value)) {
+                                                int cellIndex = project.columnModel.getColumnByName(columnName)
+                                                                .getCellIndex();
+
+                                                RowDependency rd = project.recordModel.getRowDependency(rowIndex);
+                                                if (rd != null && rd.cellDependencies != null) {
+                                                        int contextRowIndex = rd.cellDependencies[cellIndex].rowIndex;
+                                                        if (contextRowIndex >= 0
+                                                                        && contextRowIndex < project.rows.size()) {
+                                                                Row row2 = project.rows.get(contextRowIndex);
+
+                                                                cell2 = row2.getCell(detailCellIndex);
+                                                        }
+                                                }
+                                        }
+
+                                        if (cell2 != null && ExpressionUtils.isNonBlankData(cell2.value)) {
+                                                jsonWriter.object();
+
+                                                jsonWriter.key("pid");
+                                                jsonWriter.value(c.propertyID);
+                                                jsonWriter.key("v");
+                                                if (cell2.recon != null && cell2.recon.match != null) {
+                                                        jsonWriter.object();
+                                                        jsonWriter.key("id");
+                                                        jsonWriter.value(cell2.recon.match.id);
+                                                        jsonWriter.key("name");
+                                                        jsonWriter.value(cell2.recon.match.name);
+                                                        jsonWriter.endObject();
+                                                } else {
+                                                        jsonWriter.value(cell2.value.toString());
+                                                }
+
+                                                jsonWriter.endObject();
+                                        }
+                                }
+
+                                jsonWriter.endArray();
+                        }
+                        jsonWriter.endObject();
+
+                        job.text = cell.value.toString();
+                        job.code = stringWriter.toString();
+                } catch (JSONException e) {
+                        //
                 }
-                
-                connection.connect();
-            }
-            
-            InputStream is = connection.getInputStream();
-            try {
-                String s = ParsingUtilities.inputStreamToString(is);
-                JSONObject o = ParsingUtilities.evaluateJsonStringToObject(s);
-                
+                return job;
+        }
+
+        @Override
+        public List<Recon> batchRecon(List<ReconJob> jobs, long historyEntryID) {
+                List<Recon> recons = new ArrayList<Recon>(jobs.size());
+
+                StringWriter stringWriter = new StringWriter();
+
+                stringWriter.write("{");
                 for (int i = 0; i < jobs.size(); i++) {
-                    StandardReconJob job = (StandardReconJob) jobs.get(i);
-                    Recon recon = null;
-                    
-                    String text = job.text;
-                    String key = "q" + i;
-                    if (o.has(key)) {
-                        JSONObject o2 = o.getJSONObject(key);
-                        if (o2.has("result")) {
-                            JSONArray results = o2.getJSONArray("result");
-                            
-                            recon = createReconServiceResults(text, results, historyEntryID);
-                        } else {
-                            logger.warn("Service error for text: " + text + "\n  Job code: " + job.code + "\n  Response: " + o2.toString());
+                        StandardReconJob job = (StandardReconJob) jobs.get(i);
+                        if (i > 0) {
+                                stringWriter.write(",");
                         }
-                    } else {
-                        logger.warn("Service error for text: " + text + "\n  Job code: " + job.code);
-                    }
-                    
-                    if (recon != null) {
+                        stringWriter.write("\"q" + i + "\":");
+                        stringWriter.write(job.code);
+                }
+                stringWriter.write("}");
+                String queriesString = stringWriter.toString();
+
+                try {
+                        URL url = new URL(service);
+                        URLConnection connection = url.openConnection();
+                        {
+                                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                                connection.setConnectTimeout(30000);
+                                connection.setDoOutput(true);
+
+                                DataOutputStream dos = new DataOutputStream(connection.getOutputStream());
+                                try {
+                                        String body = "queries=" + ParsingUtilities.encode(queriesString);
+
+                                        dos.writeBytes(body);
+                                } finally {
+                                        dos.flush();
+                                        dos.close();
+                                }
+
+                                connection.connect();
+                        }
+
+                        InputStream is = connection.getInputStream();
+                        try {
+                                String s = ParsingUtilities.inputStreamToString(is);
+                                JSONObject o = ParsingUtilities.evaluateJsonStringToObject(s);
+
+                                for (int i = 0; i < jobs.size(); i++) {
+                                        StandardReconJob job = (StandardReconJob) jobs.get(i);
+                                        Recon recon = null;
+
+                                        String text = job.text;
+                                        String key = "q" + i;
+                                        if (o.has(key)) {
+                                                JSONObject o2 = o.getJSONObject(key);
+                                                if (o2.has("result")) {
+                                                        JSONArray results = o2.getJSONArray("result");
+
+                                                        recon = createReconServiceResults(text, results, historyEntryID);
+                                                } else {
+                                                        logger.warn("Service error for text: " + text
+                                                                        + "\n  Job code: " + job.code
+                                                                        + "\n  Response: " + o2.toString());
+                                                }
+                                        } else {
+                                                logger.warn("Service error for text: " + text + "\n  Job code: "
+                                                                + job.code);
+                                        }
+
+                                        if (recon != null) {
+                                                recon.service = service;
+                                        }
+                                        recons.add(recon);
+                                }
+                        } finally {
+                                is.close();
+                        }
+                        // } catch (IOException e) {
+                        // // TODO: Retry on HTTP 500 errors?
+                } catch (Exception e) {
+                        logger.error("Failed to batch recon with load:\n" + queriesString, e);
+                }
+
+                while (recons.size() < jobs.size()) {
+                        Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
                         recon.service = service;
-                    }
-                    recons.add(recon);
-                }
-            } finally {
-                is.close();
-            }
-//        } catch (IOException e) {
-//            // TODO: Retry on HTTP 500 errors?
-        } catch (Exception e) {
-            logger.error("Failed to batch recon with load:\n" + queriesString, e);
-        }
-        
-        while (recons.size() < jobs.size()) {
-            Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
-            recon.service = service;
-            recon.identifierSpace = identifierSpace;
-            recon.schemaSpace = schemaSpace;
+                        recon.identifierSpace = identifierSpace;
+                        recon.schemaSpace = schemaSpace;
 
-            recons.add(recon);
-        }
-        
-        return recons;
-    }
-    
-    @Override
-    public Recon createNewRecon(long historyEntryID) {
-        Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
-        recon.service = service;
-        return recon;
-    }
+                        recons.add(recon);
+                }
 
-    protected Recon createReconServiceResults(String text, JSONArray results, long historyEntryID) {
-        Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
-        try {
-            int length = results.length();
-            int count = 0;
-            for (int i = 0; i < length && count < 3; i++) {
-                JSONObject result = results.getJSONObject(i);
-                if (!result.has("name")) {
-                    continue;
-                }
-                
-                JSONArray types = result.getJSONArray("type");
-                String[] typeIDs = new String[types.length()];
-                for (int j = 0; j < typeIDs.length; j++) {
-                    Object type = types.get(j);
-                    typeIDs[j] = type instanceof String ? (String) type :
-                        ((JSONObject) type).getString("id");
-                }
-                
-                double score = result.getDouble("score");
-                ReconCandidate candidate = new ReconCandidate(
-                    result.getString("id"),
-                    result.getString("name"),
-                    typeIDs,
-                    score
-                );
-                
-                if (autoMatch && i == 0 && result.has("match") && result.getBoolean("match")) {
-                    recon.match = candidate;
-                    recon.matchRank = 0;
-                    recon.judgment = Judgment.Matched;
-                    recon.judgmentAction = "auto";
-                }
-                
-                recon.addCandidate(candidate);
-                count++;
-            }
-            
-            if (count > 0) {
-                ReconCandidate candidate = recon.candidates.get(0);
-                
-                recon.setFeature(Recon.Feature_nameMatch, text.equalsIgnoreCase(candidate.name));
-                recon.setFeature(Recon.Feature_nameLevenshtein, 
-                        StringUtils.getLevenshteinDistance(StringUtils.lowerCase(text), StringUtils.lowerCase(candidate.name)));
-                recon.setFeature(Recon.Feature_nameWordDistance, wordDistance(text, candidate.name));
-                
-                recon.setFeature(Recon.Feature_typeMatch, false);
-                if (this.typeID != null) {
-                    for (String typeID : candidate.types) {
-                        if (this.typeID.equals(typeID)) {
-                            recon.setFeature(Recon.Feature_typeMatch, true);
-                            break;
+                return recons;
+        }
+
+        @Override
+        public Recon createNewRecon(long historyEntryID) {
+                Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
+                recon.service = service;
+                return recon;
+        }
+
+        protected Recon createReconServiceResults(String text, JSONArray results, long historyEntryID) {
+                Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
+                try {
+                        int length = results.length();
+                        int count = 0;
+                        for (int i = 0; i < length && count < 3; i++) {
+                                JSONObject result = results.getJSONObject(i);
+                                if (!result.has("name")) {
+                                        continue;
+                                }
+
+                                JSONArray types = result.getJSONArray("type");
+                                String[] typeIDs = new String[types.length()];
+                                for (int j = 0; j < typeIDs.length; j++) {
+                                        Object type = types.get(j);
+                                        typeIDs[j] = type instanceof String ? (String) type : ((JSONObject) type)
+                                                        .getString("id");
+                                }
+
+                                double score = result.getDouble("score");
+                                ReconCandidate candidate = new ReconCandidate(result.getString("id"),
+                                                result.getString("name"), typeIDs, score);
+
+                                if (autoMatch && i == 0 && result.has("match") && result.getBoolean("match")) {
+                                        recon.match = candidate;
+                                        recon.matchRank = 0;
+                                        recon.judgment = Judgment.Matched;
+                                        recon.judgmentAction = "auto";
+                                }
+
+                                recon.addCandidate(candidate);
+                                count++;
                         }
-                    }
+
+                        if (count > 0) {
+                                ReconCandidate candidate = recon.candidates.get(0);
+
+                                recon.setFeature(Recon.Feature_nameMatch, text.equalsIgnoreCase(candidate.name));
+                                recon.setFeature(Recon.Feature_nameLevenshtein, StringUtils.getLevenshteinDistance(
+                                                StringUtils.lowerCase(text), StringUtils.lowerCase(candidate.name)));
+                                recon.setFeature(Recon.Feature_nameWordDistance, wordDistance(text, candidate.name));
+
+                                recon.setFeature(Recon.Feature_typeMatch, false);
+                                if (this.typeID != null) {
+                                        for (String typeID : candidate.types) {
+                                                if (this.typeID.equals(typeID)) {
+                                                        recon.setFeature(Recon.Feature_typeMatch, true);
+                                                        break;
+                                                }
+                                        }
+                                }
+                        }
+                } catch (JSONException e) {
+                        e.printStackTrace();
                 }
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return recon;
-    }
-    
-    static protected double wordDistance(String s1, String s2) {
-        Set<String> words1 = breakWords(s1);
-        Set<String> words2 = breakWords(s2);
-        return words1.size() >= words2.size() ? wordDistance(words1, words2) : wordDistance(words2, words1);
-    }
-    
-    static protected double wordDistance(Set<String> longWords, Set<String> shortWords) {
-        if (longWords.size() == 0) {
-            return 0.0;
+                return recon;
         }
 
-        double common = 0;
-        for (String word : shortWords) {
-            if (longWords.contains(word)) {
-                common++;
-            }
+        static protected double wordDistance(String s1, String s2) {
+                Set<String> words1 = breakWords(s1);
+                Set<String> words2 = breakWords(s2);
+                return words1.size() >= words2.size() ? wordDistance(words1, words2) : wordDistance(words2, words1);
         }
-        return common / longWords.size();
-    }
-    
-    static final protected Set<String> s_stopWords = new HashSet<String>();
-    static {
-        s_stopWords.add("the");
-        s_stopWords.add("a");
-        s_stopWords.add("and");
-        s_stopWords.add("of");
-        s_stopWords.add("on");
-        s_stopWords.add("in");
-        s_stopWords.add("at");
-        s_stopWords.add("by");
-    }
-    
-    static protected Set<String> breakWords(String s) {
+
+        static protected double wordDistance(Set<String> longWords, Set<String> shortWords) {
+                if (longWords.size() == 0) {
+                        return 0.0;
+                }
+
+                double common = 0;
+                for (String word : shortWords) {
+                        if (longWords.contains(word)) {
+                                common++;
+                        }
+                }
+                return common / longWords.size();
+        }
+
+        static final protected Set<String> s_stopWords = new HashSet<String>();
+        static {
+                s_stopWords.add("the");
+                s_stopWords.add("a");
+                s_stopWords.add("and");
+                s_stopWords.add("of");
+                s_stopWords.add("on");
+                s_stopWords.add("in");
+                s_stopWords.add("at");
+                s_stopWords.add("by");
+        }
+
+        static protected Set<String> breakWords(String s) {
                 String[] words = s.toLowerCase().split("\\s+");
-        
-        Set<String> set = new HashSet<String>(words.length);
-        for (String word : words) {
-            if (!s_stopWords.contains(word)) {
-                set.add(word);
-            }
+
+                Set<String> set = new HashSet<String>(words.length);
+                for (String word : words) {
+                        if (!s_stopWords.contains(word)) {
+                                set.add(word);
+                        }
+                }
+                return set;
         }
-        return set;
-    }
 }
