@@ -52,6 +52,7 @@ import org.json.JSONWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.refine.Configurations;
 import com.google.refine.expr.ExpressionUtils;
 import com.google.refine.model.Cell;
 import com.google.refine.model.Project;
@@ -190,9 +191,22 @@ public class StandardReconConfig extends ReconConfig {
         writer.endObject();
     }
 
+  
+    /**
+     * nunobett
+     * 11/02/2013
+     * Added DEFAULT_RECONCILE_BATCH_SIZE with size 10 so that if -Drefine.reconcile.batchSize is null, it will use this value
+     */
+    static private final int DEFAULT_RECONCILE_BATCH_SIZE = 10;
+
+    /*
+     * (non-Javadoc)
+     * @see com.google.refine.model.recon.ReconConfig#getBatchSize()
+     */
     @Override
     public int getBatchSize() {
-        return 10;
+            //nunobett: changed to user refine.reconcile.batchSize from parameters  
+            return Configurations.getInteger("refine.reconcile.batchSize",DEFAULT_RECONCILE_BATCH_SIZE);
     }
 
     @Override
