@@ -366,17 +366,17 @@ public class StandardReconConfig extends ReconConfig {
                         }
                         // } catch (IOException e) {
                         // // TODO: Retry on HTTP 500 errors?
+                        //nunobett: this should only be done when connection to the server is not ended with an error 
+                        while (recons.size() < jobs.size()) {
+                                Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
+                                recon.service = service;
+                                recon.identifierSpace = identifierSpace;
+                                recon.schemaSpace = schemaSpace;
+
+                                recons.add(recon);
+                        }
                 } catch (Exception e) {
                         logger.error("Failed to batch recon with load:\n" + queriesString, e);
-                }
-
-                while (recons.size() < jobs.size()) {
-                        Recon recon = new Recon(historyEntryID, identifierSpace, schemaSpace);
-                        recon.service = service;
-                        recon.identifierSpace = identifierSpace;
-                        recon.schemaSpace = schemaSpace;
-
-                        recons.add(recon);
                 }
 
                 return recons;
