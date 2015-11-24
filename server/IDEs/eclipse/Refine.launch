@@ -8,6 +8,5 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="com.google.refine.Refine"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="OpenRefine"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Drefine.autoreloading=true"/>
-<stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="${workspace_loc:grefine-all}"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Drefine.autoreloading=true -Drefine.verbosity=info -Drefine.reconcile.batchSize=1 -Drefine.reconcile.maxTrials=4"/>
 </launchConfiguration>
